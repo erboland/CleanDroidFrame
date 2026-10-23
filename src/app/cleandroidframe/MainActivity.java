@@ -491,7 +491,8 @@ public class MainActivity extends Activity {
         // the bottom row still fit on screen; past that the page scrolls.
         int launchable = 0;
         for (String pkg : apps) if (launchIntent(pm, pkg) != null) launchable++;
-        int rows = Math.max(1, (launchable + 2 + PER_ROW - 1) / PER_ROW); // +2: the console and Add app tiles
+        int extra = 1 + (consoleChoice() == null || hdmiInputs().isEmpty() ? 0 : 1); // the Add app tile, and the console tile if shown
+        int rows = Math.max(1, (launchable + extra + PER_ROW - 1) / PER_ROW);
         gridTop = Math.max(px(GRID_MIN_TOP), px(ROW1_TOP) - (rows - 1) * px(ROW_STEP));
         ((FrameLayout.LayoutParams) moveHint.getLayoutParams()).topMargin = gridTop - px(96);
         root.setMinimumHeight(gridTop + rows * px(ROW_STEP) + px(MARGIN));
