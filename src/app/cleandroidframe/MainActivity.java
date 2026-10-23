@@ -77,7 +77,8 @@ public class MainActivity extends Activity {
     private static final String ADD = "add";
     private static final String[] EDIT_ITEMS = {"Move", "Replace", "Remove from home", "Uninstall"};
     private static final String[] EDIT_ITEMS_SYSTEM = {"Move", "Replace", "Remove from home", "App info"};
-    private static final int PER_ROW = 6, MAX_INPUTS = 4;
+    private static final int PER_ROW = 6, MAX_PER_ROW = 8, MAX_INPUTS = 4;
+    private int perRow = PER_ROW; // tiles on the first row: 6, or more (smaller tiles) up to 8 so everything stays on one row
 
     // Settings shortcuts: name, label, icon. Tile keys are QUICK + name.
     private static final String QUICK = "quick:";
@@ -481,10 +482,6 @@ public class MainActivity extends Activity {
 
         PackageManager pm = getPackageManager();
         int m = px(MARGIN), g = px(GAP);
-        int w = (getResources().getDisplayMetrics().widthPixels - 2 * m - g * (PER_ROW - 1)) / PER_ROW;
-        int h = w * 3 / 4;
-        tileW = w;
-        tileH = h;
 
         List<String> apps = appList(pm);
         // Apps fill rows of six. With more rows the grid starts higher, so up to two rows of apps and
@@ -492,7 +489,13 @@ public class MainActivity extends Activity {
         int launchable = 0;
         for (String pkg : apps) if (launchIntent(pm, pkg) != null) launchable++;
         int extra = 1 + (consoleChoice() == null || hdmiInputs().isEmpty() ? 0 : 1); // the Add app tile, and the console tile if shown
-        int rows = Math.max(1, (launchable + extra + PER_ROW - 1) / PER_ROW);
+        // More than six tiles shrink to share one row; past eight they wrap onto a second row.
+        perRow = Math.max(PER_ROW, Math.min(MAX_PER_ROW, launchable + extra));
+        int w = (getResources().getDisplayMetrics().widthPixels - 2 * m - g * (perRow - 1)) / perRow;
+        int h = w * 3 / 4;
+        tileW = w;
+        tileH = h;
+        int rows = Math.max(1, (launchable + extra + perRow - 1) / perRow);
         gridTop = Math.max(px(GRID_MIN_TOP), px(ROW1_TOP) - (rows - 1) * px(ROW_STEP));
         ((FrameLayout.LayoutParams) moveHint.getLayoutParams()).topMargin = gridTop - px(96);
         root.setMinimumHeight(gridTop + rows * px(ROW_STEP) + px(MARGIN));
@@ -502,7 +505,7 @@ public class MainActivity extends Activity {
         // sits in the middle of the screen; the tiles are centred with it.
         int pad = px(26);
         int total = launchable + (consoleChoice() == null || hdmiInputs().isEmpty() ? 0 : 1) + 1;
-        int cols = Math.min(PER_ROW, total);
+        int cols = Math.min(perRow, total);
         int rowW = cols * w + (cols - 1) * g;
         gridLeft = (getResources().getDisplayMetrics().widthPixels - rowW) / 2;
         dockX = gridLeft - pad;
@@ -1104,11 +1107,11 @@ public class MainActivity extends Activity {
 
     // Where app number i sits in the grid.
     private int gridX(int i) {
-        return gridLeft + (i % PER_ROW) * (tileW + px(GAP));
+        return gridLeft + (i % perRow) * (tileW + px(GAP));
     }
 
     private int gridY(int i) {
-        return gridTop + (i / PER_ROW) * px(ROW_STEP);
+        return gridTop + (i / perRow) * px(ROW_STEP);
     }
 
     private View tile(String key) {
@@ -1131,7 +1134,7 @@ public class MainActivity extends Activity {
 
     private boolean moveKey(String key, int code, boolean ok, boolean down) {
         int step = code == KeyEvent.KEYCODE_DPAD_LEFT ? -1 : code == KeyEvent.KEYCODE_DPAD_RIGHT ? 1
-                : code == KeyEvent.KEYCODE_DPAD_UP ? -PER_ROW : code == KeyEvent.KEYCODE_DPAD_DOWN ? PER_ROW : 0;
+                : code == KeyEvent.KEYCODE_DPAD_UP ? -perRow : code == KeyEvent.KEYCODE_DPAD_DOWN ? perRow : 0;
         if (step != 0) {
             int from = rowApps.indexOf(key), to = from + step;
             if (down && to >= 0 && to < rowApps.size()) {
